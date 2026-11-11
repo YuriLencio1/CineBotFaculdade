@@ -1,6 +1,4 @@
-# CineBot — Versão simples
-
-Bot do Telegram desenvolvido em Python para pesquisar e recomendar filmes com a API TMDB.
+# CineBot 
 
 ## Comandos
 - `/start` ou `/ajuda`: mostra as opções
@@ -16,7 +14,5 @@ Bot do Telegram desenvolvido em Python para pesquisar e recomendar filmes com a 
 
 ## Como funciona
 O bot recebe comandos por meio da biblioteca `python-telegram-bot`. A função `consultar_api()` utiliza `requests.get()` para consultar endpoints `/search/movie` e `/discover/movie` do TMDB, processa a resposta JSON e devolve título, nota e sinopse ao Telegram.
-
-> Projeto didático: para manter o código curto, as requisições `requests.get()` são síncronas dentro dos comandos assíncronos. Isso atende à demonstração educacional, mas não é ideal para alto volume de usuários.
 
 API: https://developer.themoviedb.org/
