@@ -61,10 +61,14 @@ async def buscar(update, context):
         await update.message.reply_text("Exemplo: /buscar Interestelar")
         return
 
+    # Pega o nome do filme digitado pelo usuário
     try:
         nome = " ".join(context.args)
+            # Chama a função que faz a requisição GET ao TMDB
         dados = consultar_api("/search/movie", {"query": nome})
+            # Extrai a lista de filmes do JSON retornado
         filmes = dados.get("results", [])
+            # Extrai a lista de filmes do JSON retornado
         await mostrar_filme(update, filmes[0] if filmes else None)
     except requests.RequestException:
         await update.message.reply_text("Erro ao consultar o TMDB. Tente novamente.")
@@ -77,7 +81,7 @@ async def recomendar(update, context):
     try:
         dados = consultar_api(
             "/discover/movie",
-            {"with_genres": GENEROS[genero], "include_adult": "false"},
+            {"with_genres": GENEROS[genero], "include_adult": "true"},
         )
         filmes = dados.get("results", [])
         filme = random.choice(filmes) if filmes else None
