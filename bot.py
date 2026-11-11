@@ -1,16 +1,17 @@
-"""CineBot: pesquisa e recomenda filmes usando a API do TMDB."""
-
-
+#Bibliotecas
+#certificados de segurança para conexão com as APIs
 import truststore
 truststore.inject_into_ssl()
-
+#bibliotecas para acessar variáveis, gerar números aleatórios e consultar APIs
 import os
 import random
 import requests
+#carrega os tokens armazenados no arquivo .env
 from dotenv import load_dotenv
+#bibliotecas para criar o bot e configurar os comandos do Telegram
 from telegram.ext import ApplicationBuilder, CommandHandler
 
-# tokens guardados no arquivo .env.
+#tokens guardados no arquivo .env.
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TMDB_TOKEN = os.getenv("TMDB_TOKEN")
@@ -27,7 +28,7 @@ def consultar_api(endereco, parametros):
         params={"language": "pt-BR", **parametros},
         timeout=15,
     )
-    resposta.raise_for_status()  # Verifica se houve erro HTTP.
+    resposta.raise_for_status()  #verifica se houve erro HTTP.
     return resposta.json()       
 
 
@@ -61,14 +62,14 @@ async def buscar(update, context):
         await update.message.reply_text("Exemplo: /buscar Interestelar")
         return
 
-    # Pega o nome do filme digitado pelo usuário
+    #pega o nome do filme digitado pelo usuário
     try:
         nome = " ".join(context.args)
-            # Chama a função que faz a requisição GET ao TMDB
+            #chama a função que faz a requisição GET ao TMDB
         dados = consultar_api("/search/movie", {"query": nome})
-            # Extrai a lista de filmes do JSON retornado
+            #extrai a lista de filmes do JSON retornado
         filmes = dados.get("results", [])
-            # Extrai a lista de filmes do JSON retornado
+            #extrai a lista de filmes do JSON retornado
         await mostrar_filme(update, filmes[0] if filmes else None)
     except requests.RequestException:
         await update.message.reply_text("Erro ao consultar o TMDB. Tente novamente.")
@@ -90,7 +91,7 @@ async def recomendar(update, context):
         await update.message.reply_text("Erro ao consultar o TMDB. Tente novamente.")
 
 
-# Inicia o bot e relaciona cada comando à sua função.
+#inicia o bot e relaciona cada comando à sua função.
 if __name__ == "__main__":
     if not TELEGRAM_TOKEN or not TMDB_TOKEN:
         raise SystemExit("Preencha TELEGRAM_TOKEN e TMDB_TOKEN no arquivo .env")
