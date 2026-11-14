@@ -32,8 +32,9 @@ def consultar_api(endereco, parametros):
     return resposta.json()       
 
 
+
 async def mostrar_filme(update, filme):
-    """Envia as informações de um filme para o Telegram."""
+    """Envia as informações completas de um filme para o Telegram."""
     if not filme:
         await update.message.reply_text("Nenhum filme encontrado.")
         return
@@ -41,8 +42,30 @@ async def mostrar_filme(update, filme):
     titulo = filme.get("title", "Sem título")
     nota = filme.get("vote_average") or 0
     sinopse = filme.get("overview") or "Sinopse indisponível."
-    mensagem = f"🎬 {titulo}\n⭐ Nota: {nota:.1f}/10\n\n📝 {sinopse}"
-    await update.message.reply_text(mensagem[:4000])
+
+    # Obtém o ano de lançamento
+    lancamento = filme.get("release_date") or ""
+    ano = lancamento[:4] if lancamento else "Não informado"
+
+    # Monta a mensagem
+    mensagem = (
+        f"🎬 {titulo}\n"
+        f"📅 Ano: {ano}\n"
+        f"⭐ Nota: {nota:.1f}/10\n\n"
+        f"📝 {sinopse}"
+    )
+
+    # Obtém o cartaz do TMDB
+    poster = filme.get("poster_path")
+
+    if poster:
+        imagem = f"https://image.tmdb.org/t/p/w500{poster}"
+        await update.message.reply_photo(
+            photo=imagem,
+            caption=mensagem[:1024]
+        )
+    else:
+        await update.message.reply_text(mensagem[:4000])
 
 
 async def iniciar(update, context):
