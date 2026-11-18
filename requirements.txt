@@ -1,4 +1,4 @@
-python-telegram-bot
-requests
-python-dotenv
-truststore
+python-telegram-bot>=21.0,<23.0
+requests>=2.31,<3.0
+python-dotenv>=1.0,<2.0
+truststore>=0.10,<1.0

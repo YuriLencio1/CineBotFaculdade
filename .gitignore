@@ -1,4 +1,16 @@
+# Segredos e ambientes virtuais
 .env
 .venv/
+venv/
+
+# Arquivos gerados pelo Python
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.coverage
+
+# IDE/Sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
