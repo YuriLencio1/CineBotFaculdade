@@ -1,104 +1,132 @@
-# CineBot — versão organizada e corrigida
+# CineBot — Telegram por API HTTP direta (sem biblioteca do Telegram)
 
-**É um único bot do Telegram**, que consulta três serviços externos:
+Projeto acadêmico de bot de filmes em Python. O programa **não usa `python-telegram-bot`, `telebot` nem `telegram.ext`**: ele se conecta diretamente à [API HTTP oficial do Telegram](https://core.telegram.org/bots/api) com a biblioteca `requests`.
 
-- **TMDB**: pesquisa, listagem e recomendação de filmes.
-- **OpenTDB**: perguntas do quiz de filmes.
-- **MyMemory**: tradução de perguntas do quiz para português.
+Os conteúdos são consultados em APIs externas:
 
-Todo o acesso HTTP continua sendo feito com **`requests.get()` (GET)**, conforme a atividade. As chamadas HTTP são executadas por `asyncio.to_thread()` para evitar bloquear o processamento de mensagens do Telegram.
+- **TMDB:** busca e recomendação de filmes, pôsteres e sinopses.
+- **OpenTDB:** perguntas do quiz de cinema.
+- **MyMemory:** tradução das perguntas (se não funcionar, usa a pergunta original).
 
-## Etapas do projeto
+## Como funciona
 
-| Etapa | Arquivo | Para estudar |
+```text
+Usuário escreve /buscar Interestelar no Telegram
+            ↓
+bot.py recebe JSON por GET /getUpdates
+            ↓
+comandos.py interpreta /buscar e chama api_filmes.py
+            ↓
+api_filmes.py faz GET https://api.themoviedb.org/3/search/movie
+            ↓
+api_telegram.py envia a resposta por POST /sendMessage ou /sendPhoto
+            ↓
+Usuário recebe título, nota, ano e sinopse
+```
+
+**Métodos HTTP usados para o Telegram:**
+
+| Método da API | Uso | Requisição Python |
 |---|---|---|
-| 1 | `config.py` | Variáveis do `.env`, certificados SSL, IDs dos gêneros e constantes. |
-| 2 | `estados.py` | Controla a pergunta pendente de cada usuário em cada chat. |
-| 3 | `api_filmes.py` | Faz GET à TMDB, valida erros e escolhe páginas existentes. |
-| 4 | `comandos.py` | Pesquisa, menu, recomendações, interações de ano/década/ator/parecido e respostas ao Telegram. |
-| 5 | `quiz.py` | Quiz com OpenTDB, tradução com MyMemory, botões e pontuação individual. |
-| 6 | `bot.py` | Importa as funções, cadastra os handlers e inicia um único bot. |
-| 7 | `testes/test_cinebot.py` | Testes locais automatizados sem consultar APIs reais. |
+| `getUpdates` | Recebe mensagens e cliques dos botões | `requests.get(...)` |
+| `sendMessage` | Responde com texto e teclados | `requests.post(..., json=...)` |
+| `sendPhoto` | Envia o pôster de um filme | `requests.post(..., json=...)` |
+| `answerCallbackQuery` | Confirma o clique no quiz | `requests.post(..., json=...)` |
+| `editMessageText` | Mostra o resultado do quiz | `requests.post(..., json=...)` |
 
-**Fluxo:** Usuário → `bot.py` → `comandos.py` ou `quiz.py` → `api_filmes.py`/APIs → resposta no Telegram. `estados.py` auxilia nos comandos com respostas digitadas.
+O Telegram aceita ambos os métodos HTTP. Este projeto usa GET para consultar mensagens e POST para enviar/editar respostas. **Todas as consultas de filmes à TMDB continuam usando GET**, conforme a atividade.
 
-## Como executar no Windows (PowerShell)
+## Arquivos do projeto
 
-1. **Extraia o ZIP** e abra a pasta `CineBot_Organizado` no VS Code.
-2. Abra o terminal do VS Code nessa pasta.
-3. Crie o ambiente virtual:
+| Arquivo | Responsabilidade |
+|---|---|
+| `bot.py` | Executa o polling e direciona comandos e cliques aos módulos |
+| `api_telegram.py` | Faz as chamadas HTTP diretas ao Telegram e interpreta JSON |
+| `api_filmes.py` | Faz requisições GET à API TMDB |
+| `comandos.py` | Busca, recomendações, filtros e menu |
+| `quiz.py` | OpenTDB, MyMemory, botões e placar individual |
+| `estados.py` | Lembra o que cada usuário precisa responder |
+| `config.py` | Tokens, IDs de gêneros e configurações |
+| `.env.example` | Modelo para configurar tokens (não contém segredos) |
+| `requirements.txt` | Bibliotecas necessárias (nenhuma biblioteca do Telegram) |
+| `testes/` | Testes locais sem tokens reais |
 
-   ```powershell
-   py -m venv .venv
-   ```
+As classes `Mensagem`, `Atualizacao` e `Callback` de `api_telegram.py` são **classes comuns escritas para este projeto**, e **não** fazem parte de nenhuma biblioteca do Telegram. Elas apenas facilitam trabalhar com os dicionários JSON recebidos pela API.
 
-4. Instale as dependências usando o Python do ambiente, sem precisar ativá-lo:
+## Como instalar e executar no Windows (PowerShell)
 
-   ```powershell
-   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-   ```
+1. Extraia a pasta `CineBot_API_Direta` e abra no VS Code.
+2. No terminal, crie o ambiente virtual:
 
-5. Crie seu `.env` com base no modelo:
+```powershell
+python -m venv .venv
+```
 
-   ```powershell
-   Copy-Item .env.example .env
-   notepad .env
-   ```
+3. Instale as dependências usando o Python do ambiente. **Não é necessário ativar** o ambiente (evita o erro de execução de scripts do PowerShell):
 
-6. Substitua os valores pelos seus tokens verdadeiros. No TMDB, use o **token de leitura de API (Bearer)**, não a chave API v3 tradicional.
-7. Inicie o bot:
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
-   ```powershell
-   .\.venv\Scripts\python.exe bot.py
-   ```
+4. Faça uma cópia do modelo de configuração e edite os tokens:
 
-8. No Telegram, abra seu bot e envie `/start`.
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
 
-**Se `py` não funcionar:** use `python -m venv .venv` na etapa 3. O método acima não requer alterar a política de execução de scripts do PowerShell.
+Seu `.env` deve conter:
 
-## Testar antes de executar
+```dotenv
+TELEGRAM_TOKEN=TOKEN_REAL_CRIADO_NO_BOTFATHER
+TMDB_TOKEN=TOKEN_BEARER_DE_LEITURA_DA_TMDB
+```
 
-Depois de instalar as dependências:
+5. Inicie o bot:
+
+```powershell
+.\.venv\Scripts\python.exe bot.py
+```
+
+6. No Telegram, abra seu bot e envie `/start`.
+
+**Importante:** deixe o terminal do bot aberto. O polling só funciona enquanto o programa estiver executando. Não inicie duas instâncias do mesmo bot ao mesmo tempo. Se já houver um webhook configurado para esse token, o `getUpdates` não funciona até remover o webhook. Não compartilhe seu `.env` nem publique tokens no GitHub.
+
+## Comandos preservados
+
+| Comando | O que faz |
+|---|---|
+| `/start`, `/ajuda`, `/menu` | Exibe o menu |
+| `/buscar Interestelar` | Busca um filme pelo nome |
+| `/acao`, `/terror`, `/comedia` | Recomenda um filme do gênero |
+| `/recomendacao` | Pergunta o gênero e mostra até 8 filmes bem avaliados |
+| `/ano` | Pede um ano e sorteia um filme |
+| `/decada` | Pede uma década e sorteia um filme |
+| `/ator` | Pede ator ou atriz e recomenda um filme |
+| `/parecido` | Pede um filme e recomenda outro parecido |
+| `/populares` | Sorteia um dos populares |
+| `/top` | Sorteia um dos mais bem avaliados |
+| `/emcartaz` | Recomenda um filme em cartaz |
+| `/breve` | Recomenda um próximo lançamento |
+| `/aleatorio` | Sorteia uma recomendação surpresa |
+| `/quiz` | Abre pergunta com botões A/B/C/D |
+| `/cancelar` | Cancela pergunta pendente |
+
+## Testes
+
+Para verificar as funções sem usar APIs reais, rode:
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s testes -v
 ```
 
-Os testes substituem as respostas das APIs por dados fictícios; não é necessário ter tokens válidos para testar as funções e os fluxos locais. Para confirmar o funcionamento real, você ainda precisa configurar o `.env` e testar os comandos no Telegram.
-
-## Todos os comandos preservados
-
-| Comando | O que faz |
-|---|---|
-| `/start`, `/ajuda`, `/menu` | Mostra o menu. |
-| `/buscar Interestelar` | Busca um filme pelo nome. |
-| `/acao`, `/terror`, `/comedia` | Sorteia uma recomendação do gênero. |
-| `/recomendacao` | Pergunta o gênero e lista até 8 filmes com nota >= 8 e pelo menos 1000 votos. |
-| `/ano` | Pergunta o ano e sorteia um filme. |
-| `/decada` | Pergunta a década e sorteia um filme. |
-| `/ator` | Pergunta o nome do artista e recomenda um filme. |
-| `/parecido` | Pergunta o filme de referência e recomenda um parecido. |
-| `/populares`, `/top`, `/emcartaz`, `/breve`, `/aleatorio` | Sorteiam filmes em diferentes seleções. |
-| `/quiz` | Mostra uma pergunta de cinema com alternativas em botões. |
-| `/cancelar` | Cancela a pergunta de texto que estiver pendente. |
-
-## Problemas corrigidos
-
-1. **Um só estado por usuário/chat**: `estados.py` substitui `aguardando_genero` e `aguardando_busca`. Iniciar outro menu substitui o anterior, sem as duas respostas se misturarem.
-2. **Um único `/cancelar`**: cancela qualquer pergunta pendente, sem handlers repetidos em diferentes grupos.
-3. **Um único handler de textos**: `receber_texto()` identifica o tipo de pergunta a responder.
-4. **`requests` sem bloquear o bot**: requisições executadas em threads, mantendo o uso obrigatório da biblioteca.
-5. **Sorteio em páginas existentes**: consulta a primeira página para descobrir `total_pages`, respeitando o máximo disponível e usando a primeira página se a página sorteada vier vazia.
-6. **Conteúdo adulto desabilitado** nas consultas de pesquisa e recomendações do TMDB.
-7. **Quiz com pontuação individual**: em grupo, somente o usuário que abriu uma pergunta pode respondê-la; os pontos não são compartilhados.
-8. **Limites de mensagens**: separa a sinopse da foto quando ela ultrapassa o limite de legendas do Telegram.
-9. **Validação de ano/década**: trata entradas inválidas sem sair da pergunta pendente.
-10. **Arquivos menores e organizados**, com `.env` no `.gitignore` para evitar expor tokens no GitHub.
+Os testes simulam respostas da API. A comunicação externa real com Telegram e TMDB deve ser confirmada manualmente com os tokens no `.env`.
 
 ## Observações
 
-- As notas são **de 0 a 10** na TMDB. A versão antiga chamava nota >= 8 de “5 estrelas”, mas essa classificação era ambígua; agora os textos mostram a nota real.
-- `top` e `populares` **sorteiam um filme** dos resultados, como no arquivo original; não retornam uma lista completa.
-- As perguntas e os placares ficam **apenas na memória do bot**: reiniciar o processo apaga esses dados. Isso é adequado para a versão simples de faculdade, mas não substitui um banco de dados.
-- A MyMemory pode falhar ou atingir limite de uso; nesse caso a pergunta do quiz aparece em inglês, sem travar o bot. As alternativas permanecem como vieram da OpenTDB.
-- Não inclua seu `.env` ao compartilhar o projeto ou enviar para o GitHub.
+- O código usa **long polling** com `getUpdates` (aguarda mensagens por até 25 segundos a cada consulta).
+- O parâmetro `offset` impede que o bot processe repetidamente atualizações que já recebeu.
+- Os botões são objetos JSON, não classes `InlineKeyboardButton`.
+- Modos de pergunta e pontuação do quiz ficam na memória: reiniciar o programa zera essas informações.
+- Se o Telegram não conseguir buscar a imagem do pôster, o bot tenta enviar apenas o texto.
+- Algumas mensagens podem demorar durante consultas de APIs externas, pois o exemplo processa as atualizações sequencialmente; isso mantém o código fácil de estudar.

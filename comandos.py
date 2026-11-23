@@ -6,7 +6,7 @@ import unicodedata
 from datetime import datetime
 
 import requests
-from telegram.error import TelegramError
+from api_telegram import TelegramError
 
 from api_filmes import consultar_api, sortear_filme
 from config import GENEROS, MAX_FILMES, NOTA_MINIMA, VOTOS_MINIMOS
@@ -63,7 +63,7 @@ async def mostrar_filme(update, filme):
                 )
                 await update.message.reply_text(f'📝 {sinopse}'[:4000])
             return
-        except TelegramError:
+        except (TelegramError, requests.RequestException):
             # Se o pôster não estiver acessível, envia o texto normalmente.
             pass
 

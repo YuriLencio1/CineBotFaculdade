@@ -5,8 +5,7 @@ import html
 import random
 
 import requests
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import TelegramError
+from api_telegram import TelegramError
 
 from estados import limpar_modo
 
@@ -84,9 +83,9 @@ async def quiz(update, context):
         f'{pergunta}\n\n'
         + '\n'.join(f'{letras[i]}) {opcao}' for i, opcao in enumerate(opcoes))
     )
-    botoes = [[InlineKeyboardButton(letras[i], callback_data=f'quiz:{i}') for i in range(4)]]
+    botoes = [[{'text': letras[i], 'callback_data': f'quiz:{i}'} for i in range(4)]]
 
-    msg = await update.message.reply_text(texto[:3600], reply_markup=InlineKeyboardMarkup(botoes))
+    msg = await update.message.reply_text(texto[:3600], reply_markup={'inline_keyboard': botoes})
 
     # chat_data é isolado por chat. Cada pergunta registra seu criador.
     perguntas = context.chat_data.setdefault('quizzes', {})

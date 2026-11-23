@@ -3,11 +3,16 @@
 import os
 from pathlib import Path
 
-import truststore
 from dotenv import load_dotenv
 
+try:
+    import truststore  # Opcional: certificados do Windows/sistema.
+except ImportError:
+    truststore = None
+
 # Usa os certificados do Windows/sistema operacional nas conexões HTTPS.
-truststore.inject_into_ssl()
+if truststore is not None:
+    truststore.inject_into_ssl()
 
 # Carrega o .env da pasta do projeto, mesmo que o terminal esteja em outra pasta.
 load_dotenv(Path(__file__).with_name('.env'))
